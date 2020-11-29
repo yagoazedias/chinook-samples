@@ -4,7 +4,6 @@
 SELECT tablename, indexname, indexdef FROM pg_indexes;
 
 
--- INCOMPLETE: Ainda é necessário lidar com uma excessão caso não seja possível deletar o index
 -- 2 Criar usando a linguagem de programação do SGBD escolhido um procedimento que
 -- remova todos os índices de uma tabela informada como parâmetro.
 CREATE OR REPLACE FUNCTION remove_indexes_by_table_name (table_name text) RETURNS INTEGER AS $$

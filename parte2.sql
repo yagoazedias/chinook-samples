@@ -22,8 +22,6 @@ BEGIN
 END
 $valid_invoice_price_update$ LANGUAGE plpgsql;
 
-CREATE TRIGGER valid_invoice_price_update BEFORE UPDATE ON "Invoice"
-  FOR EACH ROW EXECUTE PROCEDURE valid_invoice_price_update();
 
 -- PASSO 2: Trigger para atualizar total na tabela invoice ao inserir uma nova linha na tabela InvoiceLine
 CREATE OR REPLACE FUNCTION update_invoice_price_on_insert_invoice_line() RETURNS trigger as $update_invoice_price_on_insert_invoice_line$
@@ -38,6 +36,47 @@ BEGIN
     RETURN NEW;
 END
 $update_invoice_price_on_insert_invoice_line$ LANGUAGE plpgsql;
+  
+  
+-- PASSO 3: Trigger para atualizar total na tabela invoice ao remove uma linha na tabela InvoiceLine
+CREATE OR REPLACE FUNCTION update_invoice_price_on_delete_invoice_line() RETURNS trigger as $update_invoice_price_on_delete_invoice_line$
+DECLARE old_total numeric(10,2);
+DECLARE new_total numeric(10,2);
+BEGIN
+    old_total := (select sum("UnitPrice" * "Quantity") from "InvoiceLine" where "InvoiceId" = OLD."InvoiceId");
+    new_total := old_total - (OLD."UnitPrice" * OLD."Quantity");
+
+    UPDATE "Invoice" SET "Total" = new_total WHERE "InvoiceId" = OLD."InvoiceId";
+
+    RETURN OLD;
+END
+$update_invoice_price_on_delete_invoice_line$ LANGUAGE plpgsql;
+
+
+-- PASSO 4: Trigger para atualizar total na tabela invoice ao atualizar uma linha na tabela InvoiceLine
+CREATE OR REPLACE FUNCTION update_invoice_price_on_delete_invoice_line() RETURNS trigger as $update_invoice_price_on_delete_invoice_line$
+DECLARE old_total numeric(10,2);
+DECLARE new_total numeric(10,2);
+BEGIN
+    old_total := (select sum("UnitPrice" * "Quantity") from "InvoiceLine" where "InvoiceId" = OLD."InvoiceId");
+    new_total := old_total - (OLD."UnitPrice" * OLD."Quantity");
+
+    UPDATE "Invoice" SET "Total" = new_total WHERE "InvoiceId" = OLD."InvoiceId";
+
+    RETURN OLD;
+END
+$update_invoice_price_on_delete_invoice_line$ LANGUAGE plpgsql;
+
+
+-- PASSO 5: Ligar as procedures à suas tabelas correspondentes 
+CREATE TRIGGER valid_invoice_price_update BEFORE UPDATE ON "Invoice"
+  FOR EACH ROW EXECUTE PROCEDURE valid_invoice_price_update();
 
 CREATE TRIGGER update_invoice_price_on_insert_invoice_line BEFORE INSERT ON "InvoiceLine"
   FOR EACH ROW EXECUTE PROCEDURE update_invoice_price_on_insert_invoice_line();
+  
+CREATE TRIGGER update_invoice_price_on_delete_invoice_line BEFORE DELETE ON "InvoiceLine"
+  FOR EACH ROW EXECUTE PROCEDURE update_invoice_price_on_delete_invoice_line();
+
+CREATE TRIGGER update_invoice_price_on_update_invoice_line BEFORE UPDATE ON "InvoiceLine"
+  FOR EACH ROW EXECUTE PROCEDURE update_invoice_price_on_update_invoice_line();
